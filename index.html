@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ZH-CN">
+
+<head>
+    <meta charset="utf-8">
+    <title>web RTC 测试</title>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        $(function () {
+            var canvas = document.getElementsByTagName('canvas')[0],
+                context = canvas.getContext('2d'),
+                video = document.getElementsByTagName("video")[0],
+                snap = document.getElementById("snap"),
+                close = document.getElementById("close"),
+                start = document.getElementById("start"),
+                MediaStreamTrack;
+            start.addEventListener('click', function () {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: true
+                    }).then(function (stream) {
+                        console.log(stream);
+                        MediaStreamTrack = typeof stream.stop === 'function' ? stream : stream.getTracks()[1];
+                        video.src = (window.URL).createObjectURL(stream);
+                        video.play();
+                    }).catch(function (err) {
+                        console.log(err);
+                    });
+                } else if (navigator.getMedia) {
+                    navigator.getMedia({
+                        video: true
+                    }).then(function (stream) {
+                        console.log(stream);
+                        MediaStreamTrack = stream.getTracks()[1];
+                        video.src = (window.webkitURL).createObjectURL(stream);
+                        video.play();
+                    }).catch(function (err) {
+                        console.log(err);
+                    });
+                }
+            });
+            snap.addEventListener('click', function () {
+                context.drawImage(video, 0, 0, 200, 150);
+            });
+            close.addEventListener('click', function () {
+                MediaStreamTrack && MediaStreamTrack.stop();
+            });
+            var label_info = `
+face_num|是|int|检测到的图片中的人脸数量
+face_list|是|array|人脸信息列表，具体包含的参数参考下面的列表。
++face_token|是|string|人脸图片的唯一标识
++location|是|array|人脸在图片中的位置
+++left|是|double|人脸区域离左边界的距离
+++top|是|double|人脸区域离上边界的距离
+++width|是|double|人脸区域的宽度
+++height|是|double|人脸区域的高度
+++rotation|是|int64|人脸框相对于竖直方向的顺时针旋转角，[-180,180]
++face_probability|是|double|人脸置信度，范围【0~1】，代表这是一张人脸的概率，0最小、1最大。
++angle|是|array|人脸旋转角度参数
+++yaw|是|double|三维旋转之左右旋转角[-90(左), 90(右)]
+++pitch|是|double|三维旋转之俯仰角度[-90(上), 90(下)]
+++roll|是|double|平面内旋转角[-180(逆时针), 180(顺时针)]
++age|否|double|年龄 ，当face_field包含age时返回
++beauty|否|int64|美丑打分，范围0-100，越大表示越美。当face_fields包含beauty时返回
++expression|否|array|表情，当 face_field包含expression时返回
+++type|否|string|none:不笑；smile:微笑；laugh:大笑
+++probability|否|double|表情置信度，范围【0~1】，0最小、1最大。
++face_shape|否|array|脸型，当face_field包含face_shape时返回
+++type|否|double|square: 正方形 triangle:三角形 oval: 椭圆 heart: 心形 round: 圆形
+++probability|否|double|置信度，范围【0~1】，代表这是人脸形状判断正确的概率，0最小、1最大。
++gender|否|array|性别，face_field包含gender时返回
+++type|否|string|male:男性 female:女性
+++probability|否|double|性别置信度，范围【0~1】，0代表概率最小、1代表最大。
++glasses|否|array|是否带眼镜，face_field包含glasses时返回
+++type|否|string|none:无眼镜，common:普通眼镜，sun:墨镜
+++probability|否|double|眼镜置信度，范围【0~1】，0代表概率最小、1代表最大。
++race|否|array|人种 face_field包含race时返回
+++type|否|string|yellow: 黄种人 white: 白种人 black:黑种人 arabs: 阿拉伯人
+++probability|否|double|人种置信度，范围【0~1】，0代表概率最小、1代表最大。
++face_type|否|array|真实人脸/卡通人脸 face_field包含face_type时返回
+++type|否|string|human: 真实人脸 cartoon: 卡通人脸
+++probability|否|double|人脸类型判断正确的置信度，范围【0~1】，0代表概率最小、1代表最大。
++landmark|否|array|4个关键点位置，左眼中心、右眼中心、鼻尖、嘴中心。face_field包含landmark时返回
++landmark72|否|array|72个特征点位置 face_field包含landmark时返回
++quality|否|array|人脸质量信息。face_field包含quality时返回
+++occlusion|否|array|人脸各部分遮挡的概率，范围[0~1]，0表示完整，1表示不完整
++++left_eye|否|double|左眼遮挡比例，[0-1] ，1表示完全遮挡
++++right_eye|否|double|右眼遮挡比例，[0-1] ， 1表示完全遮挡
++++nose|否|double|鼻子遮挡比例，[0-1] ， 1表示完全遮挡
++++mouth|否|double|嘴巴遮挡比例，[0-1] ， 1表示完全遮挡
++++left_cheek|否|double|左脸颊遮挡比例，[0-1] ， 1表示完全遮挡
++++right_cheek|否|double|右脸颊遮挡比例，[0-1] ， 1表示完全遮挡
++++chin|否|double|下巴遮挡比例，，[0-1] ， 1表示完全遮挡
+++blur|否|double|人脸模糊程度，范围[0~1]，0表示清晰，1表示模糊
+++illumination|否|double|取值范围在[0~255], 表示脸部区域的光照程度 越大表示光照越好
+++completeness|否|int64|人脸完整度，0或1, 0为人脸溢出图像边界，1为人脸都在图像边界内
+            `;
+            var metas = {};
+            var flag = [];
+            label_info.split('\n').forEach(line => {
+                if (/^\s*$/.test(line)) return;
+                var arr = line.split('|');
+                var meta = {
+                    key: arr[0],
+                    require: arr[1],
+                    type: arr[2],
+                    desc: arr[3]
+                };
+                var matches = /^(\+*)([^\+]*)/.exec(meta.key);
+                meta.depth = matches[1].length;
+                flag[meta.depth] = matches[2];
+                if (meta.depth > 0) {
+                    meta.path = flag.slice(0, meta.depth + 1).join('.');
+                } else {
+                    meta.path = matches[2];
+                }
+                metas[meta.path] = meta;
+            });
+            console.log(metas);
+            // var rrr = { "error_code": 0, "error_msg": "SUCCESS", "log_id": 3545797589792, "timestamp": 1534347406, "cached": 0, "result": { "face_num": 1, "face_list": [{ "face_token": "09f667d85a5d936470a3f9a777595fc1", "location": { "left": 94.64624023, "top": 62.2794838, "width": 68, "height": 72, "rotation": 2 }, "face_probability": 1, "angle": { "yaw": -4.805259228, "pitch": -0.2829970419, "roll": 1.810722589 }, "age": 23, "beauty": 55.0476799, "expression": { "type": "none", "probability": 0.9999966621 }, "face_shape": { "type": "oval", "probability": 0.3787562549 }, "gender": { "type": "male", "probability": 0.9993809462 }, "glasses": { "type": "none", "probability": 0.9999982119 }, "landmark": [{ "x": 116.8852844, "y": 77.27893829 }, { "x": 146.9389648, "y": 78.35908508 }, { "x": 133.7611694, "y": 97.79100037 }, { "x": 132.1299744, "y": 115.1384277 }], "landmark72": [{ "x": 93.70124054, "y": 79.47235107 }, { "x": 94.57305908, "y": 91.14100647 }, { "x": 96.05523682, "y": 102.9427795 }, { "x": 99.51563263, "y": 114.7849579 }, { "x": 108.6913757, "y": 126.2172089 }, { "x": 120.2157288, "y": 133.868042 }, { "x": 132.038269, "y": 135.7439728 }, { "x": 142.1755981, "y": 132.0147552 }, { "x": 151.2691498, "y": 122.463501 }, { "x": 156.9311829, "y": 112.0871124 }, { "x": 159.6362915, "y": 101.7241364 }, { "x": 161.7284393, "y": 91.50724792 }, { "x": 162.293808, "y": 81.07765961 }, { "x": 109.9313812, "y": 77.93951416 }, { "x": 113.4801178, "y": 75.73136139 }, { "x": 117.0723724, "y": 75.24726868 }, { "x": 120.3960342, "y": 76.28808594 }, { "x": 123.2378235, "y": 79.45330811 }, { "x": 120.1874237, "y": 79.68716431 }, { "x": 116.7828827, "y": 79.75522614 }, { "x": 113.1679993, "y": 79.03291321 }, { "x": 116.8852844, "y": 77.27893829 }, { "x": 104.6457291, "y": 70.01715088 }, { "x": 109.7408905, "y": 64.50749207 }, { "x": 115.9266968, "y": 63.40358734 }, { "x": 121.7804947, "y": 64.00668335 }, { "x": 126.9304199, "y": 67.93206787 }, { "x": 121.4958496, "y": 68.26509857 }, { "x": 115.8888474, "y": 68.27601624 }, { "x": 110.2030029, "y": 68.95960236 }, { "x": 141.2783203, "y": 80.22757721 }, { "x": 144.1835938, "y": 77.07865906 }, { "x": 147.7221222, "y": 76.36421204 }, { "x": 151.1554871, "y": 77.02153778 }, { "x": 153.9441833, "y": 79.58413696 }, { "x": 151.2744598, "y": 80.42349243 }, { "x": 148.0413513, "y": 80.83198547 }, { "x": 144.4972839, "y": 80.65529633 }, { "x": 146.9389648, "y": 78.35908508 }, { "x": 139.2738953, "y": 68.31747437 }, { "x": 144.1567535, "y": 64.57901001 }, { "x": 149.5549622, "y": 64.31420898 }, { "x": 154.8281555, "y": 65.9771347 }, { "x": 158.2827911, "y": 71.69004822 }, { "x": 154.0215149, "y": 70.33860779 }, { "x": 149.3135376, "y": 69.19878387 }, { "x": 144.2650452, "y": 68.71855164 }, { "x": 128.5112, "y": 80.1552124 }, { "x": 126.9834442, "y": 87.22824097 }, { "x": 125.4163132, "y": 94.26272583 }, { "x": 122.428299, "y": 101.4602509 }, { "x": 127.4801331, "y": 101.784668 }, { "x": 137.8697357, "y": 102.1729126 }, { "x": 141.6570892, "y": 102.1156082 }, { "x": 139.7831879, "y": 94.69619751 }, { "x": 138.3808899, "y": 87.60087585 }, { "x": 137.0758972, "y": 80.44943237 }, { "x": 133.7611694, "y": 97.79100037 }, { "x": 119.9589157, "y": 115.0105591 }, { "x": 126.039505, "y": 111.7456665 }, { "x": 132.6226959, "y": 111.2353973 }, { "x": 138.5878143, "y": 112.0053711 }, { "x": 142.8375854, "y": 115.2132874 }, { "x": 138.2912903, "y": 118.5190735 }, { "x": 132.3764343, "y": 119.7309265 }, { "x": 125.6388626, "y": 118.5489807 }, { "x": 126.3293991, "y": 114.3912964 }, { "x": 132.538208, "y": 114.5376892 }, { "x": 138.0218201, "y": 114.5456696 }, { "x": 137.7453766, "y": 115.4855804 }, { "x": 132.333374, "y": 115.6161957 }, { "x": 126.4982147, "y": 115.352066 }], "race": { "type": "yellow", "probability": 1 }, "quality": { "occlusion": { "left_eye": 0, "right_eye": 0, "nose": 0, "mouth": 0, "left_cheek": 0, "right_cheek": 0.08104395866, "chin_contour": 0.01102756895 }, "blur": 0.00008750650159, "illumination": 121, "completeness": 1 }, "face_type": { "type": "human", "probability": 0.985635221 } }] } };
+            // console.log(rrr.result);
+            var flag2 = [];
+            var output = [];
+            function b(object, depth) {
+                Object.keys(object).forEach(k => {
+                    flag2[depth] = k;
+                    let value = object[k];
+                    if (Array.isArray(value)) {
+                        ++depth;
+                        value.forEach(x => {
+                            b(x, depth);
+                        });
+                        --depth;
+                    } else if (typeof (value) === 'object') {
+                        b(value, ++depth);
+                        --depth;
+                    }
+                    else {
+                        let path = flag2.slice(0, depth + 1).join('.');
+                        let meta = metas[path];
+                        if (!meta) {
+                            //debugger
+                            console.error(`【${path}】：找不到字段解释`);
+                        } else {
+                            console.log(`${meta.desc}:%c ${value}`, 'color:red');
+                            output.push({
+                                desc: meta.desc,
+                                value: value
+                            });
+                        }
+                    }
+                });
+            }
+            // b(rrr.result, 0);
+            // return;
+            $('#bdfd').click(function () {
+                var imgData = canvas.toDataURL();
+                var image2 = imgData.substr(imgData.indexOf(',') + 1);
+                $.ajax({
+                    url: `/face_detect`,
+                    type: 'post',
+                    contentType: 'application/json; charset=UTF-8',
+                    data: JSON.stringify({
+                        image: image2,
+                        image_type: 'BASE64',
+                        face_field: 'age,beauty,expression,face_shape,gender,glasses,landmark,race,quality,face_type',
+                        face_type: 'LIVE'
+                    }),
+                    dataType: 'json',
+                    success: function (data) {
+                        var result = data.result;
+                        b(result, 0);
+                        output.forEach(msg => {
+                            $(`<div><label>${msg.desc}:</label><span style="color:red">${msg.value}</span></div>`).appendTo($('body'));
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <video width="200px" height="150px"></video>
+    <canvas width="200px" height="150px"></canvas>
+    <p>
+        <button id="start">1.打开摄像头</button>
+        <button id="snap">2.截取图像</button>
+        <button id="bdfd">3.百度人像</button>
+        <button id="close">4.关闭摄像头</button>
+    </p>
+</body>
+
+</html>
