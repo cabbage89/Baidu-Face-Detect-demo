@@ -91,7 +91,7 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
 +++mouth|否|double|嘴巴遮挡比例，[0-1] ， 1表示完全遮挡
 +++left_cheek|否|double|左脸颊遮挡比例，[0-1] ， 1表示完全遮挡
 +++right_cheek|否|double|右脸颊遮挡比例，[0-1] ， 1表示完全遮挡
-+++chin|否|double|下巴遮挡比例，，[0-1] ， 1表示完全遮挡
++++chin_contour|否|double|下巴遮挡比例，，[0-1] ， 1表示完全遮挡
 ++blur|否|double|人脸模糊程度，范围[0~1]，0表示清晰，1表示模糊
 ++illumination|否|double|取值范围在[0~255], 表示脸部区域的光照程度 越大表示光照越好
 ++completeness|否|int64|人脸完整度，0或1, 0为人脸溢出图像边界，1为人脸都在图像边界内
@@ -142,6 +142,10 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
                         if (!meta) {
                             //debugger
                             console.error(`【${path}】：找不到字段解释`);
+                            output.push({
+                                desc: `${path}`,
+                                value: value
+                            });
                         } else {
                             console.log(`${meta.desc}:%c ${value}`, 'color:red');
                             output.push({
@@ -162,11 +166,19 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
                     data: JSON.stringify(postData),
                     dataType: 'json',
                     success: function (data) {
+                        $('#face_result').remove();
+                        if (data.error_code > 0) {
+                            $(`<div id="face_result">${data.error_msg}</div>`).appendTo($('body'));
+                            return;
+                        }
                         var result = data.result;
                         b(result, 0);
+                        var html = '';
                         output.forEach(msg => {
-                            $(`<div><label>${msg.desc}:</label><span style="color:red">${msg.value}</span></div>`).appendTo($('body'));
+                            html += `<div><label>${msg.desc}:</label><span style="color:red">${msg.value}</span></div>`;
                         });
+
+                        $(`<div id="face_result">${html}</div>`).appendTo($('body'));
                     }
                 });
             }
@@ -175,7 +187,7 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
                 var postData = {
                     image: imgData.substr(imgData.indexOf(',') + 1),
                     image_type: 'BASE64',
-                    face_field: 'age,beauty,expression,face_shape,gender,glasses,landmark,race,quality,face_type',
+                    face_field: 'age,beauty,expression,face_shape,gender,glasses,race,quality,face_type',
                     face_type: 'LIVE'
                 };
                 api(postData);
@@ -186,7 +198,7 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
                 var postData = {
                     image: url,
                     image_type: 'URL',
-                    face_field: 'age,beauty,expression,face_shape,gender,glasses,landmark,race,quality,face_type',
+                    face_field: 'age,beauty,expression,face_shape,gender,glasses,race,quality,face_type',
                     face_type: 'LIVE'
                 };
                 api(postData);
@@ -206,8 +218,9 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
     </p>
     <div>
         <input type="url" id="url_image" style="width: 600px" />
-        <button id="btn_url">人脸检测</button><br/>
-        <img src="" id="img_url" style="display: none" />
+        <button id="btn_url">人脸检测</button>
+        <br/>
+        <img src="" style="height: 200px;" id="img_url" style="display: none" />
     </div>
 </body>
 
