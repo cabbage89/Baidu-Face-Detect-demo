@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>web RTC 测试</title>
+    <title>百度人脸检测测试</title>
     <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
     <script>
         $(function () {
@@ -154,19 +154,12 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
             }
             // b(rrr.result, 0);
             // return;
-            $('#bdfd').click(function () {
-                var imgData = canvas.toDataURL();
-                var image2 = imgData.substr(imgData.indexOf(',') + 1);
+            function api(postData) {
                 $.ajax({
                     url: `/face_detect`,
                     type: 'post',
                     contentType: 'application/json; charset=UTF-8',
-                    data: JSON.stringify({
-                        image: image2,
-                        image_type: 'BASE64',
-                        face_field: 'age,beauty,expression,face_shape,gender,glasses,landmark,race,quality,face_type',
-                        face_type: 'LIVE'
-                    }),
+                    data: JSON.stringify(postData),
                     dataType: 'json',
                     success: function (data) {
                         var result = data.result;
@@ -176,6 +169,27 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
                         });
                     }
                 });
+            }
+            $('#bdfd').click(function () {
+                var imgData = canvas.toDataURL();
+                var postData = {
+                    image: imgData.substr(imgData.indexOf(',') + 1),
+                    image_type: 'BASE64',
+                    face_field: 'age,beauty,expression,face_shape,gender,glasses,landmark,race,quality,face_type',
+                    face_type: 'LIVE'
+                };
+                api(postData);
+            });
+            $('#btn_url').click(function () {
+                var url = $('#url_image').val();
+                $('#img_url').attr({ src: url }).show();
+                var postData = {
+                    image: url,
+                    image_type: 'URL',
+                    face_field: 'age,beauty,expression,face_shape,gender,glasses,landmark,race,quality,face_type',
+                    face_type: 'LIVE'
+                };
+                api(postData);
             });
         });
     </script>
@@ -190,6 +204,11 @@ face_list|是|array|人脸信息列表，具体包含的参数参考下面的列
         <button id="bdfd">3.百度人像</button>
         <button id="close">4.关闭摄像头</button>
     </p>
+    <div>
+        <input type="url" id="url_image" style="width: 600px" />
+        <button id="btn_url">人脸检测</button><br/>
+        <img src="" id="img_url" style="display: none" />
+    </div>
 </body>
 
 </html>
